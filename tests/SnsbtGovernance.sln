@@ -1,6 +1,6 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SnsbtGovernance", "SnsbtGovernance.csproj", "{252F77BD-B474-4AC5-B02C-C2518059DDEC}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SnsbtGovernance.Tests", "SnsbtGovernance.Tests.csproj", "{252F77BD-B474-4AC5-B02C-C2518059DDEC}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{3A36A694-DFE4-4078-AF21-869FBF96F71C}"
 	ProjectSection(SolutionItems) = preProject

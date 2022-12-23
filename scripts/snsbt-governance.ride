@@ -2,3 +2,28 @@
 {-# CONTENT_TYPE DAPP #-}
 {-# SCRIPT_TYPE ACCOUNT #-}
 
+let SEP = "__"
+
+let snsbtId = base58'8wUmN9Y15f3JR4KZfE81XLXpkdgwnqoBNG6NmocZpKQx'
+let gnsbtGovernanceAddress = Address(base58'3PMoqtw9NCk1JDrNq24Pji6xqtuG3PYRy8m')
+
+func getIntOrZero(key: String) = {
+    getInteger(this, key).valueOrElse(0)
+}
+
+func makeUserDepositKey(userAddress: Address) = ["%s%s", userAddress.toString(), "deposit"].makeString(SEP)
+
+@Callable(i)
+func deposit() = {
+    let payments = i.payments.size()
+    let payment = i.payments[0].value()
+    if (i.caller == this) then { throw("Access denied") }
+    else if (payments != 1) then { throw("Only one sNSBT payment is allowed") }         
+    else if (payment.assetId != snsbtId) then { throw("Only sNSBT allowed") }
+    else {
+        let userDepositKey = makeUserDepositKey(i.caller)
+        let currentUserDeposit = getIntOrZero(userDepositKey)
+        let newUserDeposit = currentUserDeposit + payment.amount
+        [IntegerEntry(userDepositKey, newUserDeposit)]
+    }
+}

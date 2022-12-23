@@ -1,0 +1,13 @@
+{-# STDLIB_VERSION 6 #-}
+{-# CONTENT_TYPE DAPP #-}
+{-# SCRIPT_TYPE ACCOUNT #-}
+
+let snsbtId = base58'8wUmN9Y15f3JR4KZfE81XLXpkdgwnqoBNG6NmocZpKQx'
+
+@Callable(i)
+func faucet(quantity: Int) = {
+    [
+        Reissue(snsbtId, quantity, true),
+        ScriptTransfer(i.caller, quantity, snsbtId)
+    ]
+}
