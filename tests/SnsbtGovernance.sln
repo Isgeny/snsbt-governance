@@ -1,0 +1,23 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SnsbtGovernance", "SnsbtGovernance.csproj", "{252F77BD-B474-4AC5-B02C-C2518059DDEC}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{3A36A694-DFE4-4078-AF21-869FBF96F71C}"
+	ProjectSection(SolutionItems) = preProject
+		..\scripts\snsbt-governance.ride = ..\scripts\snsbt-governance.ride
+		..\.gitignore = ..\.gitignore
+		..\README.md = ..\README.md
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{252F77BD-B474-4AC5-B02C-C2518059DDEC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{252F77BD-B474-4AC5-B02C-C2518059DDEC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{252F77BD-B474-4AC5-B02C-C2518059DDEC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{252F77BD-B474-4AC5-B02C-C2518059DDEC}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
