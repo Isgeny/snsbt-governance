@@ -11,6 +11,10 @@ func getIntOrZero(key: String) = {
     getInteger(this, key).valueOrElse(0)
 }
 
+func getIntOrFail(key: String) = {
+    getInteger(this, key).valueOrErrorMessage("Key '" + key + "' is not exist")
+}
+
 func makeUserDepositKey(userAddress: Address) = ["%s%s", userAddress.toString(), "deposit"].makeString(SEP)
 
 @Callable(i)
@@ -25,5 +29,20 @@ func deposit() = {
         let currentUserDeposit = getIntOrZero(userDepositKey)
         let newUserDeposit = currentUserDeposit + payment.amount
         [IntegerEntry(userDepositKey, newUserDeposit)]
+    }
+}
+
+@Callable(i)
+func withdraw() = {
+    let payments = i.payments.size()
+    if (i.caller == this) then { throw("Access denied") }
+    else if (payments != 0) then { throw("Payments are prohibited") }
+    else {
+        let userDepositKey = makeUserDepositKey(i.caller)
+        let currentUserDeposit = getIntOrFail(userDepositKey)
+        [
+            ScriptTransfer(i.caller, currentUserDeposit, snsbtId),
+            DeleteEntry(userDepositKey)
+        ]
     }
 }

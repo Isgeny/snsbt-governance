@@ -17,7 +17,7 @@ public class DepositTests
     }
 
     [Fact]
-    public void InvokeFromAdminAccount_ThrowException()
+    public void Invoke_FromAdminAccount_ThrowException()
     {
         _snsbtAccount.FaucetSnsbt(_snsbtGovernanceAccount.PrivateKey, 1_000000);
 
@@ -27,7 +27,7 @@ public class DepositTests
     }
 
     [Fact]
-    public void InvokeWithoutPayments_ThrowException()
+    public void Invoke_WithoutPayments_ThrowException()
     {
         var account = PrivateNode.GenerateAccount();
 
@@ -37,7 +37,7 @@ public class DepositTests
     }
 
     [Fact]
-    public void InvokeWithWrongPayment_ThrowException()
+    public void Invoke_WithWrongPayment_ThrowException()
     {
         var account = PrivateNode.GenerateAccount();
 
@@ -47,7 +47,7 @@ public class DepositTests
     }
 
     [Fact]
-    public void InvokeWithMultiplePayments_ThrowException()
+    public void Invoke_WithMultiplePayments_ThrowException()
     {
         var account = PrivateNode.GenerateAccount();
         _snsbtAccount.FaucetSnsbt(account, 1_000000);

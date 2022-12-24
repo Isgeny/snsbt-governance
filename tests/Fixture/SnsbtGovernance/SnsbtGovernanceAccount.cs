@@ -28,4 +28,10 @@ public class SnsbtGovernanceAccount
         .GetSignedWith(callerAccount)
         .BroadcastAndWait(PrivateNode.Instance)
         .Transaction.Id!;
+
+    public string InvokeWithdraw(PrivateKey callerAccount, ICollection<Amount>? payment = null) => InvokeScriptTransactionBuilder
+        .Params(Address, payment ?? new List<Amount>(), new Call { Function = "withdraw" })
+        .GetSignedWith(callerAccount)
+        .BroadcastAndWait(PrivateNode.Instance)
+        .Transaction.Id!;
 }
