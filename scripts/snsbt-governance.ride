@@ -3,46 +3,137 @@
 {-# SCRIPT_TYPE ACCOUNT #-}
 
 let SEP = "__"
+let LISTSEP = ":"
+
+# indices to access proposal data fields (static)
+let govIdxProposalTxId = 1
+let govIdxType         = 2
+let govIdxAuthor       = 3
+let govIdxUrl          = 4
+let govIdxTitle        = 5
+let govIdxCreationTime = 6
+let govIdxStart        = 7
+let govIdxEnd          = 8
+let govIdxTxIds        = 9
+let govIdxQuorum       = 10
+let govIdxOptions      = 11
+
+# indices to access dynamic status data
+let govStatusIdxIsValid    = 1
+let govStatusIdxWinOpt     = 2
+let govStatusIdxWinVotes   = 3
+let govStatusIdxTotalVotes = 4
+let govStatusIdxScApplied  = 5
+let govStatusIdxScTime     = 6
+let govStatusIdxIsCanceled = 7
 
 let snsbtId = base58'8wUmN9Y15f3JR4KZfE81XLXpkdgwnqoBNG6NmocZpKQx'
 let gnsbtGovernanceAddress = Address(base58'3PMoqtw9NCk1JDrNq24Pji6xqtuG3PYRy8m')
 
 func getIntOrZero(key: String) = {
-    getInteger(this, key).valueOrElse(0)
+    getInteger(key).valueOrElse(0)
 }
 
 func getIntOrFail(key: String) = {
-    getInteger(this, key).valueOrErrorMessage("Key '" + key + "' is not exist")
+    getInteger(key).valueOrErrorMessage("Key '" + key + "' is not exist")
 }
 
-func makeUserDepositKey(userAddress: Address) = ["%s%s", userAddress.toString(), "deposit"].makeString(SEP)
+func getStringOrFail(address: Address, key: String) = {
+    address.getString(key).valueOrErrorMessage("Key '" + key + "' is not exist")
+}
+
+func makeProposalStatusDataByIdKey(proposalId: Int) = ["%s%d", "proposalStatusData", proposalId.toString()].makeString(SEP)
+
+func makeProposalDataByIdKey(proposalId: Int) = ["%s%d", "proposalData", proposalId.toString()].makeString(SEP)
+
+func makeUserDepositKey(userAddress: Address) = ["%s%s", "deposit", userAddress.toString()].makeString(SEP)
+
+func makeProposalVotesByIdAndUserKey(proposalId: Int, userAddress: Address) = makeString(["%s%d%s", "votesByUser", proposalId.toString(), userAddress.toString()], SEP)
+
+func makeProposalChoiceByIdAndUserKey(proposalId: Int, userAddress: Address) = makeString(["%s%d%s", "optionByUser", proposalId.toString(), userAddress.toString()], SEP)
+
+func makeProposalVotesByIdAndOptionKey(proposalId: Int, option: Int) = makeString(["%s%d%d", "votesByOption", proposalId.toString(), option.toString()], SEP)
+
+func makeUserReleaseTimeKey(userAddress: Address) = ["%s%s", "releaseTime", userAddress.toString()].makeString(SEP)
 
 @Callable(i)
 func deposit() = {
-    let payments = i.payments.size()
     let payment = i.payments[0].value()
-    if (i.caller == this) then { throw("Access denied") }
-    else if (payments != 1) then { throw("Only one sNSBT payment is allowed") }         
-    else if (payment.assetId != snsbtId) then { throw("Only sNSBT allowed") }
-    else {
-        let userDepositKey = makeUserDepositKey(i.caller)
-        let currentUserDeposit = getIntOrZero(userDepositKey)
-        let newUserDeposit = currentUserDeposit + payment.amount
-        [IntegerEntry(userDepositKey, newUserDeposit)]
-    }
+    if (i.caller == this) then throw("Access denied") else
+    if (i.payments.size() != 1) then throw("Only one sNSBT payment is allowed") else
+    if (payment.assetId != snsbtId) then throw("Only sNSBT allowed") else
+
+    let userDepositKey = makeUserDepositKey(i.caller)
+    let oldUserDeposit = getIntOrZero(userDepositKey)
+    let newUserDeposit = oldUserDeposit + payment.amount
+    [IntegerEntry(userDepositKey, newUserDeposit)]
+}
+
+@Callable(i)
+func castVote(proposalId: Int, choice: Int) = {
+    if (i.caller == this) then throw("Access denied") else 
+    if (i.payments.size() != 0) then throw("Payments are prohibited") else
+
+    let userVotes = getIntOrFail(makeUserDepositKey(i.caller))
+    let dynamicData = gnsbtGovernanceAddress.getStringOrFail(makeProposalStatusDataByIdKey(proposalId)).split(SEP)
+    if (dynamicData[govStatusIdxIsCanceled] == "true") then throw("Voting is canceled by team") else
+
+    let propData = gnsbtGovernanceAddress.getStringOrFail(makeProposalDataByIdKey(proposalId)).split(SEP)
+    let start = propData[govIdxStart].parseIntValue()
+    let end = propData[govIdxEnd].parseIntValue()
+    let now = lastBlock.timestamp
+    if (now < start) then throw("Voting not started yet") else
+    if (now >= end) then throw("Voting already finished") else
+
+    let availableOptions = propData[govIdxOptions].split(LISTSEP)
+    let numOptions = availableOptions.size()
+    if (numOptions <= 1) then throw("Too few choices to vote") else
+    if (choice >= numOptions) then throw("Unknown choice! Must be 0.." + (numOptions - 1).toString()) else
+
+    let userChoiceKey = makeProposalChoiceByIdAndUserKey(proposalId, i.caller)
+    let userVotesKey = makeProposalVotesByIdAndUserKey(proposalId, i.caller)
+    let userReleaseTimeKey = makeUserReleaseTimeKey(i.caller)
+
+    let oldUserChoice = getInteger(userChoiceKey)
+    let oldUserVotes = getInteger(userVotesKey)
+    let releaseTime = max([end, getIntOrZero(userReleaseTimeKey)])
+
+    let votesByOptionKey = makeProposalVotesByIdAndOptionKey(proposalId, choice)
+
+    let votesByOption = if (oldUserChoice.isDefined() && oldUserVotes.isDefined() && oldUserChoice.value() == choice)
+        then getIntOrZero(votesByOptionKey) + userVotes - oldUserVotes.value()
+        else getIntOrZero(votesByOptionKey) + userVotes
+
+    let optionalVotesByOptionOld = if (!oldUserChoice.isDefined() || !oldUserVotes.isDefined() || oldUserChoice == choice) 
+        then []
+        else {
+            let oldVotesByOptionKey = makeProposalVotesByIdAndOptionKey(proposalId, oldUserChoice.value())
+            [IntegerEntry(oldVotesByOptionKey, getIntOrZero(oldVotesByOptionKey) - oldUserVotes.value())]
+        }
+
+    [
+        IntegerEntry(userChoiceKey, choice),
+        IntegerEntry(userVotesKey, userVotes),
+        IntegerEntry(userReleaseTimeKey, releaseTime),
+        IntegerEntry(votesByOptionKey, votesByOption)
+    ] ++ optionalVotesByOptionOld
 }
 
 @Callable(i)
 func withdraw() = {
-    let payments = i.payments.size()
-    if (i.caller == this) then { throw("Access denied") }
-    else if (payments != 0) then { throw("Payments are prohibited") }
-    else {
-        let userDepositKey = makeUserDepositKey(i.caller)
-        let currentUserDeposit = getIntOrFail(userDepositKey)
-        [
-            ScriptTransfer(i.caller, currentUserDeposit, snsbtId),
-            DeleteEntry(userDepositKey)
-        ]
-    }
+    if (i.caller == this) then throw("Access denied") else 
+    if (i.payments.size() != 0) then throw("Payments are prohibited") else
+
+    let userDepositKey = makeUserDepositKey(i.caller)
+    let userDeposit = getIntOrFail(userDepositKey)
+
+    let timestamp = blockInfoByHeight(height).value().timestamp
+    let releaseTimeKey = makeUserReleaseTimeKey(i.caller)
+    let releaseTime = getIntOrZero(releaseTimeKey)
+    if (timestamp <= releaseTime) then throw("Your sNSBT are taking part in voting, cannot unstake until " + releaseTime.toString()) else
+
+    [
+        ScriptTransfer(i.caller, userDeposit, snsbtId),
+        DeleteEntry(userDepositKey)
+    ]
 }

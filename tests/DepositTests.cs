@@ -1,5 +1,5 @@
-﻿using FluentAssertions.Execution;
-using SnsbtGovernance.Tests.Fixture;
+﻿using SnsbtGovernance.Tests.Fixture;
+using SnsbtGovernance.Tests.Fixture.GnsbtGovernance;
 using SnsbtGovernance.Tests.Fixture.Snsbt;
 using SnsbtGovernance.Tests.Fixture.SnsbtGovernance;
 
@@ -13,7 +13,8 @@ public class DepositTests
     public DepositTests()
     {
         _snsbtAccount = new SnsbtAccount();
-        _snsbtGovernanceAccount = new SnsbtGovernanceAccount(_snsbtAccount.SnsbtId);
+        var gnsbtGovernanceAccount = new GnsbtGovernanceAccount();
+        _snsbtGovernanceAccount = new SnsbtGovernanceAccount(_snsbtAccount.SnsbtId, gnsbtGovernanceAccount.PrivateKey.GetAddress());
     }
 
     [Fact]
@@ -77,7 +78,7 @@ public class DepositTests
             {
                 new IntegerEntry
                 {
-                    Key = $"%s%s__{account.GetAddress()}__deposit",
+                    Key = $"%s%s__deposit__{account.GetAddress()}",
                     Value = 1_000000,
                 },
             });
@@ -102,7 +103,7 @@ public class DepositTests
             {
                 new IntegerEntry
                 {
-                    Key = $"%s%s__{account.GetAddress()}__deposit",
+                    Key = $"%s%s__deposit__{account.GetAddress()}",
                     Value = 800000,
                 },
             });
@@ -129,12 +130,12 @@ public class DepositTests
             {
                 new IntegerEntry
                 {
-                    Key = $"%s%s__{account1.GetAddress()}__deposit",
+                    Key = $"%s%s__deposit__{account1.GetAddress()}",
                     Value = 1_000000,
                 },
                 new IntegerEntry
                 {
-                    Key = $"%s%s__{account2.GetAddress()}__deposit",
+                    Key = $"%s%s__deposit__{account2.GetAddress()}",
                     Value = 2_900000,
                 },
             });
