@@ -37,4 +37,16 @@ public static class PrivateNode
     public static Address GetAddress(this PrivateKey privateKey) => Address.FromPublicKey(ChainId, privateKey.PublicKey);
 
     public static TransactionInfo BroadcastAndWait(this Transaction transaction, Node node) => node.WaitForTransaction(node.Broadcast(transaction).Id);
+
+    public static Transaction GetSignedWith(this Transaction transaction, PrivateKey privateKey1, PrivateKey privateKey2)
+    {
+        transaction.SenderPublicKey = privateKey1.PublicKey;
+        
+        var transactionBinarySerializerFactory = new TransactionBinarySerializerFactory();
+        var bodyBytes = transactionBinarySerializerFactory.GetFor(transaction).Serialize(transaction);
+        transaction.Id = Base58s.As(Crypto.CalculateBlake2bHash(bodyBytes));
+        transaction.Proofs.Add(new Base58s(privateKey1.Sign(bodyBytes)));
+        transaction.Proofs.Add(new Base58s(privateKey2.Sign(bodyBytes)));
+        return transaction;
+    }
 }

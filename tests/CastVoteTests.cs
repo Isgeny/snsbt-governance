@@ -15,7 +15,7 @@ public class CastVoteTests
     {
         _snsbtAccount = new SnsbtAccount();
         _gnsbtGovernanceAccount = new GnsbtGovernanceAccount();
-        _snsbtGovernanceAccount = new SnsbtGovernanceAccount(_snsbtAccount.SnsbtId, _gnsbtGovernanceAccount.PrivateKey.GetAddress());
+        _snsbtGovernanceAccount = new SnsbtGovernanceAccount(_snsbtAccount, _gnsbtGovernanceAccount.PrivateKey.GetAddress());
     }
 
     [Fact]
@@ -40,7 +40,19 @@ public class CastVoteTests
             },
         });
 
-        var invoke = () => _snsbtGovernanceAccount.CastVote(_snsbtGovernanceAccount.PrivateKey, 8, 1);
+        var castVoteTransaction = InvokeScriptTransactionBuilder
+            .Params(_snsbtGovernanceAccount.Address, new List<Amount>(), new Call
+            {
+                Function = "castVote", Args = new List<CallArg>
+                {
+                    new() { Type = CallArgType.Integer, Value = 8L },
+                    new() { Type = CallArgType.Integer, Value = 1L },
+                }
+            })
+            .SetFee(0_00900000)
+            .GetUnsigned();
+
+        var invoke = () => castVoteTransaction.GetSignedWith(_snsbtGovernanceAccount.PrivateKey, _snsbtAccount.PrivateKey).BroadcastAndWait(PrivateNode.Instance);
 
         invoke.Should().Throw<Exception>().WithMessage("*Access denied");
     }

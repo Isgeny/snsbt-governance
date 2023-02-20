@@ -14,15 +14,25 @@ public class DepositTests
     {
         _snsbtAccount = new SnsbtAccount();
         var gnsbtGovernanceAccount = new GnsbtGovernanceAccount();
-        _snsbtGovernanceAccount = new SnsbtGovernanceAccount(_snsbtAccount.SnsbtId, gnsbtGovernanceAccount.PrivateKey.GetAddress());
+        _snsbtGovernanceAccount = new SnsbtGovernanceAccount(_snsbtAccount, gnsbtGovernanceAccount.PrivateKey.GetAddress());
     }
 
     [Fact]
     public void Invoke_FromAdminAccount_ThrowException()
     {
-        _snsbtAccount.FaucetSnsbt(_snsbtGovernanceAccount.PrivateKey, 1_000000);
+        Transaction faucetTransaction = InvokeScriptTransactionBuilder
+            .Params(_snsbtAccount.PrivateKey.GetAddress(), new Call { Function = "faucet", Args = new List<CallArg> { new() { Type = CallArgType.Integer, Value = 1_000000L } } })
+            .SetFee(0_00900000L)
+            .GetUnsigned();
 
-        var invoke = () => _snsbtGovernanceAccount.InvokeDeposit(_snsbtGovernanceAccount.PrivateKey, new List<Amount> { new() { AssetId = _snsbtAccount.SnsbtId, Value = 1_000000 } });
+        faucetTransaction.GetSignedWith(_snsbtGovernanceAccount.PrivateKey, _snsbtAccount.PrivateKey).BroadcastAndWait(PrivateNode.Instance);
+
+        var depositTransaction = InvokeScriptTransactionBuilder
+            .Params(_snsbtGovernanceAccount.Address, new List<Amount> { new() { AssetId = _snsbtAccount.SnsbtId, Value = 1_000000 } }, new Call { Function = "deposit" })
+            .SetFee(0_00900000L)
+            .GetUnsigned();
+
+        var invoke = () => depositTransaction.GetSignedWith(_snsbtGovernanceAccount.PrivateKey, _snsbtAccount.PrivateKey).BroadcastAndWait(PrivateNode.Instance);
 
         invoke.Should().Throw<Exception>().WithMessage("*Access denied");
     }

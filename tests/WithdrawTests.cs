@@ -15,15 +15,25 @@ public class WithdrawTests
     {
         _snsbtAccount = new SnsbtAccount();
         _gnsbtGovernanceAccount = new GnsbtGovernanceAccount();
-        _snsbtGovernanceAccount = new SnsbtGovernanceAccount(_snsbtAccount.SnsbtId, _gnsbtGovernanceAccount.PrivateKey.GetAddress());
+        _snsbtGovernanceAccount = new SnsbtGovernanceAccount(_snsbtAccount, _gnsbtGovernanceAccount.PrivateKey.GetAddress());
     }
 
     [Fact]
     public void Invoke_FromAdminAccount_ThrowException()
     {
-        _snsbtAccount.FaucetSnsbt(_snsbtGovernanceAccount.PrivateKey, 1_000000);
+        Transaction faucetTransaction = InvokeScriptTransactionBuilder
+            .Params(_snsbtAccount.PrivateKey.GetAddress(), new Call { Function = "faucet", Args = new List<CallArg> { new() { Type = CallArgType.Integer, Value = 1_000000L } } })
+            .SetFee(0_00900000L)
+            .GetUnsigned();
+        
+        faucetTransaction.GetSignedWith(_snsbtGovernanceAccount.PrivateKey, _snsbtAccount.PrivateKey).BroadcastAndWait(PrivateNode.Instance);
 
-        var invoke = () => _snsbtGovernanceAccount.InvokeWithdraw(_snsbtGovernanceAccount.PrivateKey);
+        var withdraw = InvokeScriptTransactionBuilder
+            .Params(_snsbtGovernanceAccount.Address, new List<Amount>(), new Call { Function = "withdraw" })
+            .SetFee(0_00900000L)
+            .GetUnsigned();
+
+        var invoke = () => withdraw.GetSignedWith(_snsbtGovernanceAccount.PrivateKey, _snsbtAccount.PrivateKey).BroadcastAndWait(PrivateNode.Instance);
 
         invoke.Should().Throw<Exception>().WithMessage("*Access denied");
     }

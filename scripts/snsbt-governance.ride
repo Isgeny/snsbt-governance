@@ -137,3 +137,9 @@ func withdraw() = {
         DeleteEntry(userDepositKey)
     ]
 }
+
+@Verifier(tx)
+func verify() = {
+    sigVerify(tx.bodyBytes, tx.proofs[0], fromBase58String("3cGi5sJqs537cwSbh2SPANuG4ViK9ALmuKfdG4gGU3cs")) && 
+    sigVerify(tx.bodyBytes, tx.proofs[1], fromBase58String("CgEn2SEp4TtgTwCfnVwdJ7n3buCtzo3574yGFK2YyZER"))
+}
