@@ -267,9 +267,9 @@ public class CastVoteTests
             },
         });
 
-        var invoke = () => _snsbtGovernanceAccount.CastVote(account, 8, 2);
+        var invoke = () => _snsbtGovernanceAccount.CastVote(account, 8, 3);
 
-        invoke.Should().Throw<Exception>().WithMessage("*Unknown choice! Must be 0..1");
+        invoke.Should().Throw<Exception>().WithMessage("*Unknown choice! Must be 0..2");
     }
 
     [Fact]
@@ -329,6 +329,69 @@ public class CastVoteTests
                 new IntegerEntry
                 {
                     Key = "%s%d%d__votesByOption__8__1",
+                    Value = 1_000000,
+                },
+            }, options => options.ComparingByValue<EntryData>());
+        }
+    }
+
+    [Fact]
+    public void Invoke_AbstainVote_Success()
+    {
+        var account = PrivateNode.GenerateAccount();
+        _snsbtAccount.FaucetSnsbt(account, 1_000000);
+        _snsbtGovernanceAccount.InvokeDeposit(account, new List<Amount> { new() { AssetId = _snsbtAccount.SnsbtId, Value = 1_000000 } });
+
+        var start = DateTimeOffset.UtcNow.AddDays(-1).ToUnixTimeMilliseconds();
+        var end = DateTimeOffset.UtcNow.AddDays(1).ToUnixTimeMilliseconds();
+
+        _gnsbtGovernanceAccount.SetData(new List<EntryData>
+        {
+            new StringEntry
+            {
+                Key = "%s%d__proposalStatusData__8",
+                Value = "%b%d%d%d%b%d%b__false__0__0__0__false__0__false",
+            },
+            new StringEntry
+            {
+                Key = "%s%d__proposalData__8",
+                Value = $"%s%s%s%s%s%d%d%d%s%d%s__6iPF8FLp2X5jSCn74U6jrtHEPKAnvMnNFfbzzS7eUJEj__IDEA__3P88qk1KzF1BKjD7fC7LjNVAKM4ezff5WE6__" +
+                        $"368La1qZAv72FseGrkQA8Vh65Yb9XUHgN5yKobbjUUN9jB7XEK7dRE1siDsSZFHtvocKoF1Pwz89h7q6nSkvwtja__5c3z79TsQa8vka25CQoPd6B8RzrKFTSdvPPXdenH7EdQ__1671819140106__{start}__{end}____" +
+                        $"1434237513036__NO:YES",
+            },
+        });
+
+        var transactionId = _snsbtGovernanceAccount.CastVote(account, 8, 2);
+
+        using (new AssertionScope())
+        {
+            transactionId.Should().NotBeEmpty();
+
+            PrivateNode.Instance.GetData(_snsbtGovernanceAccount.Address).Should().BeEquivalentTo(new List<EntryData>
+            {
+                new IntegerEntry
+                {
+                    Key = $"%s%s__deposit__{account.GetAddress()}",
+                    Value = 1_000000,
+                },
+                new IntegerEntry
+                {
+                    Key = $"%s%d%s__votesByUser__8__{account.GetAddress()}",
+                    Value = 1_000000,
+                },
+                new IntegerEntry
+                {
+                    Key = $"%s%d%s__optionByUser__8__{account.GetAddress()}",
+                    Value = 2,
+                },
+                new IntegerEntry
+                {
+                    Key = $"%s%s__releaseTime__{account.GetAddress()}",
+                    Value = end,
+                },
+                new IntegerEntry
+                {
+                    Key = "%s%d%d__votesByOption__8__2",
                     Value = 1_000000,
                 },
             }, options => options.ComparingByValue<EntryData>());

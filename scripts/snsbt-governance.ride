@@ -88,7 +88,7 @@ func castVote(proposalId: Int, choice: Int) = {
     let availableOptions = propData[govIdxOptions].split(LISTSEP)
     let numOptions = availableOptions.size()
     if (numOptions <= 1) then throw("Too few choices to vote") else
-    if (choice >= numOptions) then throw("Unknown choice! Must be 0.." + (numOptions - 1).toString()) else
+    if (choice > numOptions) then throw("Unknown choice! Must be 0.." + (numOptions).toString()) else
 
     let userChoiceKey = makeProposalChoiceByIdAndUserKey(proposalId, i.caller)
     let userVotesKey = makeProposalVotesByIdAndUserKey(proposalId, i.caller)
